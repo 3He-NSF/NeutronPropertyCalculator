@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neutron Property Calculator</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+        input, select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        #plot {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+        }
+        .axis-controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .axis-group {
+            flex: 1;
+        }
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .range-inputs input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neutron Property Calculator</h1>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="inputType">Input type:</label>
+                <select id="inputType">
+                    <option value="wavelength">Wavelength (Å)</option>
+                    <option value="energy">Energy (eV)</option>
+                    <option value="temperature">Temperature (K)</option>
+                    <option value="velocity">Velocity (m/s)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="inputValue">Value:</label>
+                <input type="number" id="inputValue" step="any">
+            </div>
+            <button onclick="calculate()">Calculate</button>
+        </div>
+
+        <div class="results" id="results">
+            <h3>Calculation Result:</h3>
+            <p>Wavelength: <span id="wavelength">-</span> Å</p>
+            <p>Energy: <span id="energy">-</span> eV</p>
+            <p>Temperature: <span id="temperature">-</span> K</p>
+            <p>Velocity: <span id="velocity">-</span> m/s</p>
+        </div>
+
+        <div class="axis-controls">
+            <div class="axis-group">
+                <h3>X Axis Settings</h3>
+                <div class="input-group">
+                    <label for="xAxisType">X Axis Property:</label>
+                    <select id="xAxisType">
+                        <option value="wavelength">Wavelength (Å)</option>
+                        <option value="energy">Energy (eV)</option>
+                        <option value="temperature">Temperature (K)</option>
+                        <option value="velocity">Velocity (m/s)</option>
+                    </select>
+                </div>
+                <div class="range-inputs">
+                    <label>Range:</label>
+                    <input type="number" id="xMin" placeholder="Min" step="any">
+                    <span>to</span>
+                    <input type="number" id="xMax" placeholder="Max" step="any">
+                </div>
+                <div class="input-group">
+                    <label>X Axis Scale:</label>
+                    <label><input type="radio" name="xScale" value="log" checked> log</label>
+                    <label><input type="radio" name="xScale" value="linear"> linear</label>
+                </div>
+            </div>
+            <div class="axis-group">
+                <h3>Y Axis Settings</h3>
+                <div class="input-group">
+                    <label for="yAxisType">Y Axis Property:</label>
+                    <select id="yAxisType">
+                        <option value="energy">Energy (eV)</option>
+                        <option value="wavelength">Wavelength (Å)</option>
+                        <option value="temperature">Temperature (K)</option>
+                        <option value="velocity">Velocity (m/s)</option>
+                    </select>
+                </div>
+                <div class="range-inputs">
+                    <label>Range:</label>
+                    <input type="number" id="yMin" placeholder="Min" step="any">
+                    <span>to</span>
+                    <input type="number" id="yMax" placeholder="Max" step="any">
+                </div>
+                <div class="input-group">
+                    <label>Y Axis Scale:</label>
+                    <label><input type="radio" name="yScale" value="log" checked> log</label>
+                    <label><input type="radio" name="yScale" value="linear"> linear</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="plot"></div>
+    </div>
+
+    <script>
+        // Physical constants
+        const h = 6.62607015e-34;  // Planck constant (J⋅s)
+        const m_n = 1.67492749804e-27;  // Neutron mass (kg)
+        const k_B = 1.380649e-23;  // Boltzmann constant (J/K)
+
+        function calculate() {
+            const inputType = document.getElementById('inputType').value;
+            const inputValue = parseFloat(document.getElementById('inputValue').value);
+
+            if (isNaN(inputValue)) {
+                alert('Please enter a valid number.');
+                return;
+            }
+
+            $.ajax({
+                url: '/calculate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    type: inputType,
+                    value: inputValue
+                }),
+                success: function(response) {
+                    document.getElementById('wavelength').textContent = response.wavelength.toFixed(4);
+                    document.getElementById('energy').textContent = response.energy.toFixed(4);
+                    document.getElementById('temperature').textContent = response.temperature.toFixed(4);
+                    document.getElementById('velocity').textContent = response.velocity.toFixed(4);
+
+                    updatePlot();
+                }
+            });
+        }
+
+        function getAxisLabel(type) {
+            const labels = {
+                'wavelength': 'Wavelength (Å)',
+                'energy': 'Energy (eV)',
+                'temperature': 'Temperature (K)',
+                'velocity': 'Velocity (m/s)'
+            };
+            return labels[type];
+        }
+
+        function calculateProperty(value, fromType, toType) {
+            if (fromType === toType) return value;
+
+            // Convert to wavelength as base
+            let wavelength;
+            if (fromType === 'wavelength') {
+                wavelength = value * 1e-10;  // Å to m
+            } else if (fromType === 'energy') {
+                const energy = value * 1.602176634e-19;  // eV to J
+                const velocity = Math.sqrt(2 * energy / m_n);
+                wavelength = h / (m_n * velocity);
+            } else if (fromType === 'temperature') {
+                const energy = k_B * value;
+                const velocity = Math.sqrt(2 * energy / m_n);
+                wavelength = h / (m_n * velocity);
+            } else if (fromType === 'velocity') {
+                wavelength = h / (m_n * value);
+            }
+
+            // Convert from wavelength to target property
+            if (toType === 'wavelength') {
+                return wavelength * 1e10;  // m to Å
+            } else if (toType === 'energy') {
+                const velocity = h / (m_n * wavelength);
+                const energy = 0.5 * m_n * velocity * velocity;
+                return energy / 1.602176634e-19;  // J to eV
+            } else if (toType === 'temperature') {
+                const velocity = h / (m_n * wavelength);
+                const energy = 0.5 * m_n * velocity * velocity;
+                return energy / k_B;
+            } else if (toType === 'velocity') {
+                return h / (m_n * wavelength);
+            }
+        }
+
+        function updatePlot() {
+            const xAxisType = document.getElementById('xAxisType').value;
+            const yAxisType = document.getElementById('yAxisType').value;
+            const xMin = parseFloat(document.getElementById('xMin').value) || 0.1;
+            const xMax = parseFloat(document.getElementById('xMax').value) || 10;
+            const yMin = parseFloat(document.getElementById('yMin').value);
+            const yMax = parseFloat(document.getElementById('yMax').value);
+            const xScale = document.querySelector('input[name="xScale"]:checked').value;
+            const yScale = document.querySelector('input[name="yScale"]:checked').value;
+
+            // Generate data based on wavelength
+            const wavelengths = Array.from({length: 100}, (_, i) => {
+                const t = i / 99;
+                return xScale === 'log'
+                    ? xMin * Math.pow(xMax / xMin, t)
+                    : xMin + (xMax - xMin) * t;
+            });
+
+            const xValues = wavelengths.map(w => calculateProperty(w, 'wavelength', xAxisType));
+            const yValues = wavelengths.map(w => calculateProperty(w, 'wavelength', yAxisType));
+
+            const trace = {
+                x: xValues,
+                y: yValues,
+                type: 'scatter',
+                mode: 'lines',
+                name: `${getAxisLabel(yAxisType)} vs ${getAxisLabel(xAxisType)}`,
+                line: {color: '#1f77b4'}
+            };
+
+            const layout = {
+                title: `${getAxisLabel(yAxisType)} vs ${getAxisLabel(xAxisType)}`,
+                xaxis: {
+                    title: getAxisLabel(xAxisType),
+                    type: xScale,
+                    range: xScale === 'log' ? [Math.log10(xMin), Math.log10(xMax)] : [xMin, xMax]
+                },
+                yaxis: {
+                    title: getAxisLabel(yAxisType),
+                    type: yScale,
+                    range: yScale === 'log' && yMin && yMax ? [Math.log10(yMin), Math.log10(yMax)] : (yMin && yMax ? [yMin, yMax] : undefined)
+                },
+                showlegend: true
+            };
+
+            Plotly.newPlot('plot', [trace], layout);
+        }
+
+        // Update plot when axis or scale is changed
+        document.getElementById('xAxisType').addEventListener('change', updatePlot);
+        document.getElementById('yAxisType').addEventListener('change', updatePlot);
+        document.getElementById('xMin').addEventListener('change', updatePlot);
+        document.getElementById('xMax').addEventListener('change', updatePlot);
+        document.getElementById('yMin').addEventListener('change', updatePlot);
+        document.getElementById('yMax').addEventListener('change', updatePlot);
+        document.querySelectorAll('input[name="xScale"]').forEach(el => el.addEventListener('change', updatePlot));
+        document.querySelectorAll('input[name="yScale"]').forEach(el => el.addEventListener('change', updatePlot));
+
+        // Initial plot
+        updatePlot();
+    </script>
+</body>
+</html>
