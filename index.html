@@ -155,6 +155,9 @@
                 </div>
             </div>
         </div>
+        <div style="text-align:left; margin-bottom:20px;">
+            <button onclick="updatePlot()">Set</button>
+        </div>
 
         <div id="plot"></div>
     </div>
@@ -286,6 +289,16 @@
             });
             const xValues = wavelengths.map(w => calculateProperty(w, 'wavelength', xAxisType));
             const yValues = wavelengths.map(w => calculateProperty(w, 'wavelength', yAxisType));
+
+            // --- 修正: rangeのバリデーション ---
+            const xRange = (xScale === 'log')
+                ? (xMin > 0 && xMax > 0 && xMin < xMax ? [Math.log10(xMin), Math.log10(xMax)] : undefined)
+                : (xMin < xMax ? [xMin, xMax] : undefined);
+            const yRange = (yScale === 'log')
+                ? (yMin > 0 && yMax > 0 && yMin < yMax ? [Math.log10(yMin), Math.log10(yMax)] : undefined)
+                : (yMin < yMax ? [yMin, yMax] : undefined);
+            // -----------------------------
+
             const trace = {
                 x: xValues,
                 y: yValues,
@@ -299,12 +312,12 @@
                 xaxis: {
                     title: getAxisLabel(xAxisType),
                     type: xScale,
-                    range: xScale === 'log' ? [Math.log10(xMin), Math.log10(xMax)] : [xMin, xMax]
+                    range: xRange
                 },
                 yaxis: {
                     title: getAxisLabel(yAxisType),
                     type: yScale,
-                    range: yScale === 'log' && yMin && yMax ? [Math.log10(yMin), Math.log10(yMax)] : (yMin && yMax ? [yMin, yMax] : undefined)
+                    range: yRange
                 },
                 showlegend: true
             };
