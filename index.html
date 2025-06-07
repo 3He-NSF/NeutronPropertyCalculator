@@ -86,6 +86,7 @@
                     <option value="energy">Energy (eV)</option>
                     <option value="temperature">Temperature (K)</option>
                     <option value="velocity">Velocity (m/s)</option>
+                    <option value="wavenumber">Wavenumber (1/Å)</option>
                 </select>
             </div>
             <div class="input-group">
@@ -101,6 +102,7 @@
             <p>Energy: <span id="energy">-</span> eV</p>
             <p>Temperature: <span id="temperature">-</span> K</p>
             <p>Velocity: <span id="velocity">-</span> m/s</p>
+            <p>Wavenumber: <span id="wavenumber">-</span> 1/Å</p>
         </div>
 
         <div class="axis-controls">
@@ -113,6 +115,7 @@
                         <option value="energy">Energy (eV)</option>
                         <option value="temperature">Temperature (K)</option>
                         <option value="velocity">Velocity (m/s)</option>
+                        <option value="wavenumber">Wavenumber (1/Å)</option>
                     </select>
                 </div>
                 <div class="range-inputs">
@@ -136,6 +139,7 @@
                         <option value="wavelength">Wavelength (Å)</option>
                         <option value="temperature">Temperature (K)</option>
                         <option value="velocity">Velocity (m/s)</option>
+                        <option value="wavenumber">Wavenumber (1/Å)</option>
                     </select>
                 </div>
                 <div class="range-inputs">
@@ -162,9 +166,15 @@
         const k_B = 1.380649e-23;  // Boltzmann constant (J/K)
 
         function calculateNeutronProperties(value, inputType) {
-            let wavelength, energy, temperature, velocity;
+            let wavelength, energy, temperature, velocity, wavenumber;
             if (inputType === 'wavelength') {
                 wavelength = value * 1e-10; // Å to m
+                velocity = h / (m_n * wavelength);
+                energy = 0.5 * m_n * velocity ** 2;
+                temperature = energy / k_B;
+            } else if (inputType === 'wavenumber') {
+                // value: wavenumber [1/Å]
+                wavelength = (2 * Math.PI / value) * 1e-10; // 1/Å to m
                 velocity = h / (m_n * wavelength);
                 energy = 0.5 * m_n * velocity ** 2;
                 temperature = energy / k_B;
@@ -184,11 +194,13 @@
                 wavelength = h / (m_n * velocity);
                 temperature = energy / k_B;
             }
+            wavenumber = 2 * Math.PI / (wavelength * 1e10); // 1/Å
             return {
                 wavelength: wavelength * 1e10, // m to Å
                 energy: energy / 1.602176634e-19, // J to eV
                 temperature: temperature,
-                velocity: velocity
+                velocity: velocity,
+                wavenumber: wavenumber
             };
         }
 
@@ -204,6 +216,7 @@
             document.getElementById('energy').textContent = result.energy.toFixed(4);
             document.getElementById('temperature').textContent = result.temperature.toFixed(4);
             document.getElementById('velocity').textContent = result.velocity.toFixed(4);
+            document.getElementById('wavenumber').textContent = result.wavenumber.toFixed(4);
             updatePlot();
         }
 
@@ -212,7 +225,8 @@
                 'wavelength': 'Wavelength (Å)',
                 'energy': 'Energy (eV)',
                 'temperature': 'Temperature (K)',
-                'velocity': 'Velocity (m/s)'
+                'velocity': 'Velocity (m/s)',
+                'wavenumber': 'Wavenumber (1/Å)'
             };
             return labels[type];
         }
@@ -233,6 +247,8 @@
                 wavelength = h / (m_n * velocity);
             } else if (fromType === 'velocity') {
                 wavelength = h / (m_n * value);
+            } else if (fromType === 'wavenumber') {
+                wavelength = 2 * Math.PI / (value) * 1e-10; // 1/Å to m
             }
             // Convert from wavelength to target property
             if (toType === 'wavelength') {
@@ -247,6 +263,8 @@
                 return energy / k_B;
             } else if (toType === 'velocity') {
                 return h / (m_n * wavelength);
+            } else if (toType === 'wavenumber') {
+                return 2 * Math.PI / (wavelength * 1e10); // 1/Å
             }
         }
 
